@@ -3,12 +3,27 @@ name: Rails integration tests
 permissions: {}
 
 on:
-  workflow_run:
-    workflows: ["Unit tests"]
-    types:
-      - completed
+  pull_request_target:
+    types: [opened, synchronize]
 
 jobs:
+  check-user-permission:
+    runs-on: ubuntu-latest
+    name: Check user permission
+    steps:
+      - name: Get User Permission
+        id: checkAccess
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: write
+          username: ${{ github.triggering_actor }}
+      - name: Check User Permission
+        if: steps.checkAccess.outputs.require-result == 'false'
+        run: |
+          echo "${{ github.triggering_actor }} does not have permissions on this repo."
+          echo "Current permission level is ${{ steps.checkAccess.outputs.user-permission }}"
+          echo "Job originally triggered by ${{ github.actor }}"
+          exit 1
   set-matrix:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
